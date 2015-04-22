@@ -9,6 +9,7 @@ name = "charinfo"
 [dependencies]
 getopts = "*"
 term = "*"
+unicode_names = "*"
 
 [profile.release]
 opt-level = 3

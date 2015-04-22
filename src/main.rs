@@ -2,6 +2,7 @@
 
 extern crate getopts;
 extern crate term;
+extern crate unicode_names;
 
 use std::io;
 use std::io::Read;
@@ -48,8 +49,6 @@ impl<I, E> CharInfo<I>
 
     fn run(mut self) {
         let mut t = term::stdout().unwrap();
-        let _ = self.options;
-
         for input in self.input {
             match input {
                 Ok(c) => {
@@ -62,13 +61,20 @@ impl<I, E> CharInfo<I>
                         t.fg(term::color::MAGENTA).unwrap();
                     }
 
-                    println!("{:>5}: {} = {}", self.count, CharDisplay(c), NumDisplay(c));
+                    print!("{:>5}: {} = {}", self.count, CharDisplay(c), NumDisplay(c));
+
+                    if self.options.show_names {
+                        if let Some(name) = unicode_names::name(c) {
+                            print!(" ({})", name);
+                        }
+                    }
 
                     if char_type != CharType::Normal {
                         t.reset().unwrap();
                     }
 
                     self.count += 1;
+                    print!("\n");
                 },
                 Err(e) => {
                     println!("Error: {}", e);
@@ -80,11 +86,14 @@ impl<I, E> CharInfo<I>
 
 
 
-struct Options;
+struct Options {
+    show_names: bool,
+}
 
 impl Options {
     pub fn getopts(args: &[String]) -> Result<Options, Misfire> {
         let mut opts = getopts::Options::new();
+        opts.optflag("n", "names",     "show unicode name of each character");
         opts.optflag("",  "version",   "display version of program");
         opts.optflag("?", "help",      "show list of command-line options");
 
@@ -100,7 +109,9 @@ impl Options {
             return Err(Misfire::Version);
         }
 
-        Ok(Options)
+        Ok(Options {
+            show_names: matches.opt_present("names"),
+        })
     }
 }
 
