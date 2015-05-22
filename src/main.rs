@@ -57,37 +57,55 @@ impl<I: Read> CharInfo<I> {
     fn run(mut self) {
         for input in self.input {
             match input {
-                Ok(ReadChar::Ok(c, buf, width)) => {
-                    let char_type = CharType::of(c);
+                Ok(ReadChar::Ok(c, bytes)) => {
+                    print_count(self.count);
+                    print_number(c);
+                    print!(" = ");
 
-                    print!("{:>5}: {} = {}", self.count, CharDisplay(c), char_type.style().paint(&NumDisplay(&buf[..width]).to_string()));
+                    match bytes {
+                        ReadBytes::FirstByte(b) => {
+                            print_hex(b);
+                            self.count += 1;
+                        },
 
-                    if self.options.show_names {
-                        if let Some(name) = unicode_names::name(c) {
-                            print!(" ({})", name);
-                        }
+                        ReadBytes::WholeBuffer(buf, width) => {
+                            print_buf(&buf[..width]);
+
+                            if self.options.show_names {
+                                if let Some(name) = unicode_names::name(c) {
+                                    print!(" ({})", name);
+                                }
+                            }
+
+                            self.count += if self.options.bytes { width as u64 }
+                                                                   else { 1u64 };
+                        },
                     }
 
-                    self.count += if self.options.bytes { width as u64 }
-                                                           else { 1u64 };
                     print!("\n");
                 },
 
-                Ok(ReadChar::ImmediateOk(c)) => {
-                    let char_type = CharType::of(c);
+                Ok(ReadChar::Invalid(bytes)) => {
+                    print_count(self.count);
+                    print!(" {}", Red.bold().paint("!!!"));
+                    print!(" = ");
 
-                    println!("{:>5}: {} = {}", self.count, CharDisplay(c), char_type.style().paint(&format!("{:0>2x}", c as u8)));
-                    self.count += 1;
+                    match bytes {
+                        ReadBytes::FirstByte(b) => {
+                            print_hex(b);
+                            self.count += 1;
+                        },
+
+                        ReadBytes::WholeBuffer(buf, width) => {
+                            print_buf(&buf[..width]);
+                            self.count += if self.options.bytes { width as u64 }
+                                                                   else { 1u64 };
+                        },
+                    }
+
+                    print!("\n");
                 },
 
-                Ok(ReadChar::ImmediateInvalid(first)) => {
-                    println!("{:>5}:  {} = {:0>2x}", self.count, Red.bold().paint("!!!"), first);
-                    self.count += 1;
-                },
-                Ok(ReadChar::Invalid(buf, width)) => {
-                    println!("{:>5}:  {} = {}", self.count, Red.bold().paint("!!!"), NumDisplay(&buf[..width]));
-                    self.count += width as u64;
-                },
                 Err(ref e) => {
                     println!("{}", e)
                 },
@@ -100,11 +118,14 @@ pub struct Chars<R> {
     inner: R,
 }
 
+pub enum ReadBytes {
+    FirstByte(u8),
+    WholeBuffer([u8; 4], usize)
+}
+
 pub enum ReadChar {
-    Ok(char, [u8; 4], usize),
-    ImmediateOk(char),
-    Invalid([u8; 4], usize),
-    ImmediateInvalid(u8),
+    Ok(char, ReadBytes),
+    Invalid(ReadBytes),
 }
 
 impl<R: Read> Iterator for Chars<R> {
@@ -119,8 +140,8 @@ impl<R: Read> Iterator for Chars<R> {
         };
 
         let width = match utf8_char_width(first_byte) {
-            0 => return Some(Ok(ReadChar::ImmediateInvalid(first_byte))),
-            1 => return Some(Ok(ReadChar::ImmediateOk(first_byte as char))),
+            0 => return Some(Ok(ReadChar::Invalid(ReadBytes::FirstByte(first_byte)))),
+            1 => return Some(Ok(ReadChar::Ok(first_byte as char, ReadBytes::FirstByte(first_byte)))),
             w => w,
         };
 
@@ -131,15 +152,15 @@ impl<R: Read> Iterator for Chars<R> {
 
         while start < width {
             match self.inner.read(&mut buf[start..width]) {
-                Ok(0)   => return Some(Ok(ReadChar::Invalid(buf, width))),
+                Ok(0)   => return Some(Ok(ReadChar::Invalid(ReadBytes::WholeBuffer(buf, width)))),
                 Ok(n)   => start += n,
                 Err(e)  => return Some(Err(e)),
             }
         }
 
         match from_utf8(&buf[..width]) {
-            Ok(s)  => Some(Ok(ReadChar::Ok(s.char_at(0), buf, width))),
-            Err(_) => Some(Ok(ReadChar::Invalid(buf, width))),
+            Ok(s)  => Some(Ok(ReadChar::Ok(s.char_at(0), ReadBytes::WholeBuffer(buf, width)))),
+            Err(_) => Some(Ok(ReadChar::Invalid(ReadBytes::WholeBuffer(buf, width)))),
         }
     }
 }
@@ -237,42 +258,39 @@ impl CharType {
 }
 
 
+fn print_count(count: u64) {
+    print!("{}", Fixed(244).paint(&format!("{:>5}: ", count)));
+}
 
-struct CharDisplay(char);
+fn print_number(c: char) {
+    let number = c as u32;
 
-impl fmt::Display for CharDisplay {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let number = self.0 as u32;
-
-        if number <= 9 {
-            write!(f, " #{} ", number)
-        }
-        else if number as u32 <= 31 {
-            write!(f, " #{}", number)
-        }
-        else if number >= 0x300 && number < 0x370 {
-            write!(f, " ' {}'", self.0)
-        }
-        else if UnicodeWidthChar::width(self.0) == Some(1) {
-            write!(f, " '{}'", self.0)
-        }
-        else {
-            write!(f, "'{}'", self.0)
-        }
+    if number <= 9 {
+        print!(" #{} ", number)
+    }
+    else if number as u32 <= 31 {
+        print!(" #{}", number)
+    }
+    else if number >= 0x300 && number < 0x370 {
+        print!(" ' {}'", c)
+    }
+    else if UnicodeWidthChar::width(c) == Some(1) {
+        print!(" '{}'", c)
+    }
+    else {
+        print!("'{}'", c)
     }
 }
 
+fn print_hex(c: u8) {
+    print!("{:0>2x}", c as u8);
+}
 
-struct NumDisplay<'buf>(&'buf [u8]);
+fn print_buf(buf: &[u8]) {
+    print_hex(buf[0]);
 
-impl<'buf> fmt::Display for NumDisplay<'buf> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "{:0>2x}", &self.0[0]));
-
-        for index in 1 .. self.0.len() {
-            try!(write!(f, " {:0>2x}", &self.0[index]));
-        }
-
-        Ok(())
+    for index in 1 .. buf.len() {
+        print!(" ");
+        print_hex(buf[index]);
     }
 }
