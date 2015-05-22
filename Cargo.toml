@@ -10,6 +10,7 @@ name = "charinfo"
 getopts = "*"
 term = "*"
 unicode_names = "*"
+unicode-width = "*"
 
 [profile.release]
 opt-level = 3

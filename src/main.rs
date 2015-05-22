@@ -4,6 +4,9 @@ extern crate getopts;
 extern crate term;
 extern crate unicode_names;
 
+extern crate unicode_width;
+use unicode_width::UnicodeWidthChar;
+
 use std::io;
 use std::io::Read;
 use std::env;
@@ -174,13 +177,16 @@ impl fmt::Display for CharDisplay {
         let number = self.0 as u32;
 
         if number <= 9 {
-            write!(f, "#{} ", number)
+            write!(f, " #{} ", number)
         }
         else if number as u32 <= 31 {
-            write!(f, "#{}", number)
+            write!(f, " #{}", number)
         }
         else if number >= 0x300 && number < 0x370 {
-            write!(f, "' {}'", self.0)
+            write!(f, " ' {}'", self.0)
+        }
+        else if self.0.width(true) == Some(1) {
+            write!(f, " '{}'", self.0)
         }
         else {
             write!(f, "'{}'", self.0)
