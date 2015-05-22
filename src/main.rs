@@ -58,8 +58,10 @@ impl<I: Read> CharInfo<I> {
         for input in self.input {
             match input {
                 Ok(ReadChar::Ok(c, bytes)) => {
+                    let char_type = CharType::of(c);
+
                     print_count(self.count);
-                    print_number(c);
+                    print!("{}", char_type.style().paint(&number(c)));
                     print!(" {} ", Fixed(244).paint("="));
 
                     match bytes {
@@ -262,23 +264,23 @@ fn print_count(count: u64) {
     print!("{}", Fixed(244).paint(&format!("{:>5}: ", count)));
 }
 
-fn print_number(c: char) {
+fn number(c: char) -> String {
     let number = c as u32;
 
     if number <= 9 {
-        print!(" #{} ", number)
+        format!(" #{} ", number)
     }
     else if number as u32 <= 31 {
-        print!(" #{}", number)
+        format!(" #{}", number)
     }
     else if number >= 0x300 && number < 0x370 {
-        print!(" ' {}'", c)
+        format!(" ' {}'", c)
     }
     else if UnicodeWidthChar::width(c) == Some(1) {
-        print!(" '{}'", c)
+        format!(" '{}'", c)
     }
     else {
-        print!("'{}'", c)
+        format!("'{}'", c)
     }
 }
 
