@@ -1,7 +1,10 @@
 #![feature(exit_status, str_char, unicode)]
 
 extern crate getopts;
-extern crate term;
+extern crate ansi_term;
+use ansi_term::Colour::*;
+use ansi_term::Style::{self, Plain};
+
 extern crate unicode_names;
 
 extern crate rustc_unicode;
@@ -52,29 +55,17 @@ impl<I: Read> CharInfo<I> {
     }
 
     fn run(mut self) {
-        let mut t = term::stdout().unwrap();
         for input in self.input {
             match input {
                 Ok(ReadChar::Ok(c, buf, width)) => {
                     let char_type = CharType::of(c);
 
-                    if char_type == CharType::Control {
-                        t.fg(term::color::GREEN).unwrap();
-                    }
-                    else if char_type == CharType::Combining {
-                        t.fg(term::color::MAGENTA).unwrap();
-                    }
-
-                    print!("{:>5}: {} = {}", self.count, CharDisplay(c), NumDisplay(&buf[..width]));
+                    print!("{:>5}: {} = {}", self.count, CharDisplay(c), char_type.style().paint(&NumDisplay(&buf[..width]).to_string()));
 
                     if self.options.show_names {
                         if let Some(name) = unicode_names::name(c) {
                             print!(" ({})", name);
                         }
-                    }
-
-                    if char_type != CharType::Normal {
-                        t.reset().unwrap();
                     }
 
                     self.count += if self.options.bytes { width as u64 }
@@ -83,26 +74,24 @@ impl<I: Read> CharInfo<I> {
                 },
 
                 Ok(ReadChar::ImmediateOk(c)) => {
-                    println!("{:>5}: {} = {:0>2x}", self.count, CharDisplay(c), c as u8);
+                    let char_type = CharType::of(c);
+
+                    println!("{:>5}: {} = {}", self.count, CharDisplay(c), char_type.style().paint(&format!("{:0>2x}", c as u8)));
                     self.count += 1;
                 },
 
                 Ok(ReadChar::ImmediateInvalid(first)) => {
-                    t.fg(term::color::BRIGHT_RED).unwrap();
-                    println!("{:>5}:  !!! = {:0>2x}", self.count, first);
+                    println!("{:>5}:  {} = {:0>2x}", self.count, Red.bold().paint("!!!"), first);
                     self.count += 1;
                 },
                 Ok(ReadChar::Invalid(buf, width)) => {
-                    t.fg(term::color::BRIGHT_RED).unwrap();
-                    println!("{:>5}:  !!! = {}", self.count, NumDisplay(&buf[..width]));
+                    println!("{:>5}:  {} = {}", self.count, Red.bold().paint("!!!"), NumDisplay(&buf[..width]));
                     self.count += width as u64;
                 },
                 Err(ref e) => {
                     println!("{}", e)
                 },
             }
-
-            t.reset().unwrap();
         }
     }
 }
@@ -235,6 +224,14 @@ impl CharType {
         }
         else {
             CharType::Normal
+        }
+    }
+
+    fn style(&self) -> Style {
+        match *self {
+            CharType::Control    => Green.normal(),
+            CharType::Combining  => Purple.normal(),
+            CharType::Normal     => Plain,
         }
     }
 }

@@ -7,8 +7,8 @@ authors = ["<ogham@bsago.me>"]
 name = "charinfo"
 
 [dependencies]
+ansi_term = "*"
 getopts = "*"
-term = "*"
 unicode_names = "*"
 unicode-width = "*"
 
