@@ -22,4 +22,4 @@ charinfo is a program that takes a stream of UTF-8-formatted data on standard in
 
 charinfo is written in [Rust](http://rust-lang.org). **You will need to use Rust Nightly**, as it needs features that have not currently landed in Stable 1.0 or Beta 1.1.
 
-After you've got it downloaded, a simple `cargo build` will compile charinfo.
+After you've got it downloaded, a simple `cargo build --release` will compile charinfo and put in in the `target/release` directory.
