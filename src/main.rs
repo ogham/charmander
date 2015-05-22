@@ -43,10 +43,9 @@ impl<I, E> CharInfo<I>
 
     fn new(options: Options, iterator: I) -> CharInfo<I> {
         CharInfo {
-            options: options,
-            count: 1,
-
-            input: iterator,
+            count:    if options.bytes { 0 } else { 1 },
+            options:  options,
+            input:    iterator,
         }
     }
 
@@ -76,7 +75,8 @@ impl<I, E> CharInfo<I>
                         t.reset().unwrap();
                     }
 
-                    self.count += 1;
+                    self.count += if self.options.bytes { c.len_utf8() as u64 }
+                                                                  else { 1u64 };
                     print!("\n");
                 },
                 Err(e) => {
@@ -90,12 +90,14 @@ impl<I, E> CharInfo<I>
 
 
 struct Options {
-    show_names: bool,
+    bytes:       bool,
+    show_names:  bool,
 }
 
 impl Options {
     pub fn getopts(args: &[String]) -> Result<Options, Misfire> {
         let mut opts = getopts::Options::new();
+        opts.optflag("b", "bytes",     "show count in number of bytes, not characters");
         opts.optflag("n", "names",     "show unicode name of each character");
         opts.optflag("",  "version",   "display version of program");
         opts.optflag("?", "help",      "show list of command-line options");
@@ -113,7 +115,8 @@ impl Options {
         }
 
         Ok(Options {
-            show_names: matches.opt_present("names"),
+            bytes:       matches.opt_present("bytes"),
+            show_names:  matches.opt_present("names"),
         })
     }
 }
@@ -185,7 +188,7 @@ impl fmt::Display for CharDisplay {
         else if number >= 0x300 && number < 0x370 {
             write!(f, " ' {}'", self.0)
         }
-        else if self.0.width(true) == Some(1) {
+        else if UnicodeWidthChar::width(self.0) == Some(1) {
             write!(f, " '{}'", self.0)
         }
         else {
