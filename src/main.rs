@@ -60,7 +60,7 @@ impl<I: Read> CharInfo<I> {
                 Ok(ReadChar::Ok(c, bytes)) => {
                     print_count(self.count);
                     print_number(c);
-                    print!(" = ");
+                    print!(" {} ", Fixed(244).paint("="));
 
                     match bytes {
                         ReadBytes::FirstByte(b) => {
@@ -73,7 +73,7 @@ impl<I: Read> CharInfo<I> {
 
                             if self.options.show_names {
                                 if let Some(name) = unicode_names::name(c) {
-                                    print!(" ({})", name);
+                                    print!(" {}", Blue.paint(&format!("({})", name)));
                                 }
                             }
 
@@ -88,7 +88,7 @@ impl<I: Read> CharInfo<I> {
                 Ok(ReadChar::Invalid(bytes)) => {
                     print_count(self.count);
                     print!(" {}", Red.bold().paint("!!!"));
-                    print!(" = ");
+                    print!(" {} ", Red.paint("="));
 
                     match bytes {
                         ReadBytes::FirstByte(b) => {
