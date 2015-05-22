@@ -6,8 +6,6 @@ charinfo is a program that takes a stream of UTF-8-formatted data on standard in
 - Contains list of character names
 - Highlights invalid UTF-8 input in red
 
-**This currently only works with the nightly, rather than Rust 1.0 stable or 1.1 beta. Sorry about that.**
-
 
 ## Screenshot
 
@@ -18,3 +16,10 @@ charinfo is a program that takes a stream of UTF-8-formatted data on standard in
 
 - **-b**, **--bytes**: Show index in bytes from 0, rather than characters from 1.
 - **-n**, **--names**: Display character names
+
+
+## Installation
+
+charinfo is written in [Rust](http://rust-lang.org). **You will need to use Rust Nightly**, as it needs features that have not currently landed in Stable 1.0 or Beta 1.1.
+
+After you've got it downloaded, a simple `cargo build` will compile charinfo.
