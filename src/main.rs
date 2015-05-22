@@ -141,9 +141,10 @@ impl<R: Read> Iterator for Chars<R> {
             Err(e)  => return Some(Err(e)),
         };
 
+        let read = ReadBytes::FirstByte(first_byte);
         let width = match utf8_char_width(first_byte) {
-            0 => return Some(Ok(ReadChar::Invalid(ReadBytes::FirstByte(first_byte)))),
-            1 => return Some(Ok(ReadChar::Ok(first_byte as char, ReadBytes::FirstByte(first_byte)))),
+            0 => return Some(Ok(ReadChar::Invalid(read))),
+            1 => return Some(Ok(ReadChar::Ok(first_byte as char, read))),
             w => w,
         };
 
@@ -151,18 +152,19 @@ impl<R: Read> Iterator for Chars<R> {
 
         let mut buf = [first_byte, 0, 0, 0];
         let mut start = 1;
+        let read = ReadBytes::WholeBuffer(buf, width);
 
         while start < width {
             match self.inner.read(&mut buf[start..width]) {
-                Ok(0)   => return Some(Ok(ReadChar::Invalid(ReadBytes::WholeBuffer(buf, width)))),
+                Ok(0)   => return Some(Ok(ReadChar::Invalid(read))),
                 Ok(n)   => start += n,
                 Err(e)  => return Some(Err(e)),
             }
         }
 
         match from_utf8(&buf[..width]) {
-            Ok(s)  => Some(Ok(ReadChar::Ok(s.char_at(0), ReadBytes::WholeBuffer(buf, width)))),
-            Err(_) => Some(Ok(ReadChar::Invalid(ReadBytes::WholeBuffer(buf, width)))),
+            Ok(s)  => Some(Ok(ReadChar::Ok(s.char_at(0), read))),
+            Err(_) => Some(Ok(ReadChar::Invalid(read))),
         }
     }
 }
