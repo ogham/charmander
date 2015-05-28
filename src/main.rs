@@ -152,16 +152,16 @@ impl<R: Read> Iterator for Chars<R> {
 
         let mut buf = [first_byte, 0, 0, 0];
         let mut start = 1;
-        let read = ReadBytes::WholeBuffer(buf, width);
 
         while start < width {
             match self.inner.read(&mut buf[start..width]) {
-                Ok(0)   => return Some(Ok(ReadChar::Invalid(read))),
+                Ok(0)   => return Some(Ok(ReadChar::Invalid(ReadBytes::WholeBuffer(buf, width)))),
                 Ok(n)   => start += n,
                 Err(e)  => return Some(Err(e)),
             }
         }
 
+        let read = ReadBytes::WholeBuffer(buf, width);
         match from_utf8(&buf[..width]) {
             Ok(s)  => Some(Ok(ReadChar::Ok(s.char_at(0), read))),
             Err(_) => Some(Ok(ReadChar::Invalid(read))),
