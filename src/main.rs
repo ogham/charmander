@@ -1,4 +1,4 @@
-#![feature(exit_status, str_char, unicode)]
+#![feature(str_char, unicode)]
 
 extern crate getopts;
 extern crate ansi_term;
@@ -18,6 +18,7 @@ use std::io::Read;
 use std::env;
 use std::fmt;
 use std::str::from_utf8;
+use std::process;
 
 
 fn main() {
@@ -30,7 +31,7 @@ fn main() {
         },
         Err(misfire)  => {
             println!("{}", misfire);
-            env::set_exit_status(misfire.exit_status());
+            process::exit(misfire.exit_status());
         },
     }
 }
