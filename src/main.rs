@@ -6,19 +6,20 @@ use ansi_term::Colour::*;
 use ansi_term::Style;
 
 extern crate unicode_names;
-
 extern crate rustc_unicode;
-use rustc_unicode::str::utf8_char_width;
-
 extern crate unicode_width;
-use unicode_width::UnicodeWidthChar;
 
 use std::io;
 use std::io::Read;
 use std::env;
 use std::fmt;
-use std::str::from_utf8;
 use std::process;
+
+mod iter;
+use iter::{Chars, ReadBytes, ReadChar};
+
+mod char;
+use char::{CharType, CharExt};
 
 
 fn main() {
@@ -35,7 +36,6 @@ fn main() {
         },
     }
 }
-
 
 
 struct Charmander<I> {
@@ -59,10 +59,14 @@ impl<I: Read> Charmander<I> {
         for input in self.input {
             match input {
                 Ok(ReadChar::Ok(c, bytes)) => {
-                    let char_type = CharType::of(c);
+                    let style = match c.char_type() {
+                        CharType::Control    => Green.normal(),
+                        CharType::Combining  => Purple.normal(),
+                        CharType::Normal     => Style::default(),
+                    };
 
                     print_count(self.count);
-                    print!("{}", char_type.style().paint(&number(c)));
+                    print!("{}", style.paint(&number(c)));
                     print!(" {} ", Fixed(244).paint("="));
 
                     match bytes {
@@ -117,59 +121,42 @@ impl<I: Read> Charmander<I> {
     }
 }
 
-pub struct Chars<R> {
-    inner: R,
+fn print_count(count: u64) {
+    print!("{}", Fixed(244).paint(&format!("{:>5}: ", count)));
 }
 
-pub enum ReadBytes {
-    FirstByte(u8),
-    WholeBuffer([u8; 4], usize)
-}
+fn number(c: char) -> String {
+    let number = c as u32;
 
-pub enum ReadChar {
-    Ok(char, ReadBytes),
-    Invalid(ReadBytes),
-}
-
-impl<R: Read> Iterator for Chars<R> {
-    type Item = Result<ReadChar, io::Error>;
-
-    fn next(&mut self) -> Option<Result<ReadChar, io::Error>> {
-        let mut buf = [0];
-        let first_byte = match self.inner.read(&mut buf) {
-            Ok(0)   => return None,
-            Ok(_)   => buf[0],
-            Err(e)  => return Some(Err(e)),
-        };
-
-        let read = ReadBytes::FirstByte(first_byte);
-        let width = match utf8_char_width(first_byte) {
-            0 => return Some(Ok(ReadChar::Invalid(read))),
-            1 => return Some(Ok(ReadChar::Ok(first_byte as char, read))),
-            w => w,
-        };
-
-        assert! { width <= 4 };
-
-        let mut buf = [first_byte, 0, 0, 0];
-        let mut start = 1;
-
-        while start < width {
-            match self.inner.read(&mut buf[start..width]) {
-                Ok(0)   => return Some(Ok(ReadChar::Invalid(ReadBytes::WholeBuffer(buf, width)))),
-                Ok(n)   => start += n,
-                Err(e)  => return Some(Err(e)),
-            }
-        }
-
-        let read = ReadBytes::WholeBuffer(buf, width);
-        match from_utf8(&buf[..width]) {
-            Ok(s)  => Some(Ok(ReadChar::Ok(s.char_at(0), read))),
-            Err(_) => Some(Ok(ReadChar::Invalid(read))),
-        }
+    if number <= 9 {
+        format!(" #{} ", number)
+    }
+    else if number as u32 <= 31 {
+        format!(" #{}", number)
+    }
+    else if number >= 0x300 && number < 0x370 {
+        format!(" ' {}'", c)
+    }
+    else if c.is_multicolumn() {
+        format!("'{}'", c)
+    }
+    else {
+        format!(" '{}'", c)
     }
 }
 
+fn print_hex(c: u8) {
+    print!("{:0>2x}", c as u8);
+}
+
+fn print_buf(buf: &[u8]) {
+    print_hex(buf[0]);
+
+    for index in 1 .. buf.len() {
+        print!(" ");
+        print_hex(buf[index]);
+    }
+}
 
 
 struct Options {
@@ -205,7 +192,6 @@ impl Options {
 }
 
 
-
 enum Misfire {
     InvalidOptions(getopts::Fail),
     Help(String),
@@ -226,76 +212,5 @@ impl fmt::Display for Misfire {
             Misfire::Help(ref text)        => write!(f, "{}", text),
             Misfire::Version               => write!(f, "charm {}", env!("CARGO_PKG_VERSION")),
         }
-    }
-}
-
-
-
-#[derive(PartialEq)]
-enum CharType {
-    Normal,
-    Combining,
-    Control,
-}
-
-impl CharType {
-    fn of(c: char) -> CharType {
-        let num = c as u32;
-
-        if c.is_control() {
-            CharType::Control
-        }
-        else if num >= 0x300 && num < 0x370 {
-            CharType::Combining
-        }
-        else {
-            CharType::Normal
-        }
-    }
-
-    fn style(&self) -> Style {
-        match *self {
-            CharType::Control    => Green.normal(),
-            CharType::Combining  => Purple.normal(),
-            CharType::Normal     => Style::default(),
-        }
-    }
-}
-
-
-fn print_count(count: u64) {
-    print!("{}", Fixed(244).paint(&format!("{:>5}: ", count)));
-}
-
-fn number(c: char) -> String {
-    let number = c as u32;
-
-    if number <= 9 {
-        format!(" #{} ", number)
-    }
-    else if number as u32 <= 31 {
-        format!(" #{}", number)
-    }
-    else if number >= 0x300 && number < 0x370 {
-        format!(" ' {}'", c)
-    }
-    else if UnicodeWidthChar::width(c) == Some(1) {
-        format!(" '{}'", c)
-    }
-    else {
-        format!("'{}'", c)
-    }
-}
-
-fn print_hex(c: u8) {
-    print!("{:0>2x}", c as u8);
-}
-
-fn print_buf(buf: &[u8]) {
-    print_hex(buf[0]);
-
-    for index in 1 .. buf.len() {
-        print!(" ");
-        print_hex(buf[index]);
     }
 }
