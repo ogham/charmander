@@ -3,7 +3,7 @@
 extern crate getopts;
 extern crate ansi_term;
 use ansi_term::Colour::*;
-use ansi_term::Style::{self, Plain};
+use ansi_term::Style;
 
 extern crate unicode_names;
 
@@ -257,7 +257,7 @@ impl CharType {
         match *self {
             CharType::Control    => Green.normal(),
             CharType::Combining  => Purple.normal(),
-            CharType::Normal     => Plain,
+            CharType::Normal     => Style::default(),
         }
     }
 }
