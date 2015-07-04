@@ -1,5 +1,5 @@
 [root]
-name = "charinfo"
+name = "charmander"
 version = "0.1.0"
 dependencies = [
  "ansi_term 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -10,7 +10,7 @@ dependencies = [
 
 [[package]]
 name = "ansi_term"
-version = "0.5.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]

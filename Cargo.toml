@@ -1,10 +1,10 @@
 [package]
-name = "charinfo"
+name = "charmander"
 version = "0.1.0"
 authors = ["<ogham@bsago.me>"]
 
 [[bin]]
-name = "charinfo"
+name = "charm"
 
 [dependencies]
 ansi_term = "*"

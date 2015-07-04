@@ -27,7 +27,7 @@ fn main() {
         Ok(options)   => {
             let thing = io::stdin();
             let stdin = Chars { inner: thing.lock() };
-            CharInfo::new(options, stdin).run();
+            Charmander::new(options, stdin).run();
         },
         Err(misfire)  => {
             println!("{}", misfire);
@@ -38,17 +38,17 @@ fn main() {
 
 
 
-struct CharInfo<I> {
+struct Charmander<I> {
     options: Options,
     count: u64,
 
     input: Chars<I>,
 }
 
-impl<I: Read> CharInfo<I> {
+impl<I: Read> Charmander<I> {
 
-    fn new(options: Options, iterator: Chars<I>) -> CharInfo<I> {
-        CharInfo {
+    fn new(options: Options, iterator: Chars<I>) -> Charmander<I> {
+        Charmander {
             count:    if options.bytes { 0 } else { 1 },
             options:  options,
             input:    iterator,
@@ -191,7 +191,7 @@ impl Options {
         };
 
         if matches.opt_present("help") {
-            return Err(Misfire::Help(opts.usage("Usage:\n  charinfo [options] < file")))
+            return Err(Misfire::Help(opts.usage("Usage:\n  charm [options] < file")))
         }
         else if matches.opt_present("version") {
             return Err(Misfire::Version);
@@ -224,7 +224,7 @@ impl fmt::Display for Misfire {
         match *self {
             Misfire::InvalidOptions(ref e) => write!(f, "{}", e),
             Misfire::Help(ref text)        => write!(f, "{}", text),
-            Misfire::Version               => write!(f, "charinfo {}", env!("CARGO_PKG_VERSION")),
+            Misfire::Version               => write!(f, "charm {}", env!("CARGO_PKG_VERSION")),
         }
     }
 }
