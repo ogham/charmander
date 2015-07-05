@@ -11,6 +11,7 @@ ansi_term = "*"
 getopts = "*"
 unicode_names = "*"
 unicode-width = "*"
+unicode-normalization = "*"
 
 [profile.release]
 opt-level = 3

@@ -5,8 +5,9 @@ extern crate ansi_term;
 use ansi_term::Colour::*;
 use ansi_term::Style;
 
-extern crate unicode_names;
 extern crate rustc_unicode;
+extern crate unicode_names;
+extern crate unicode_normalization;
 extern crate unicode_width;
 
 use std::io;
