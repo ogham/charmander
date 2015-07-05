@@ -21,6 +21,8 @@ use iter::{Chars, ReadBytes, ReadChar};
 mod char;
 use char::{CharType, CharExt};
 
+mod scripts;
+
 
 fn main() {
     let args: Vec<_> = env::args().collect();
@@ -72,6 +74,13 @@ impl<I: Read> Charmander<I> {
                     match bytes {
                         ReadBytes::FirstByte(b) => {
                             print_hex(b);
+
+                            if self.options.show_scripts {
+                                if let Some(script) = c.script() {
+                                    print!(" {}", Purple.paint(&format!("[{}]", script.name())));
+                                }
+                            }
+
                             self.count += 1;
                         },
 
@@ -81,6 +90,12 @@ impl<I: Read> Charmander<I> {
                             if self.options.show_names {
                                 if let Some(name) = unicode_names::name(c) {
                                     print!(" {}", Blue.paint(&format!("({})", name)));
+                                }
+                            }
+
+                            if self.options.show_scripts {
+                                if let Some(script) = c.script() {
+                                    print!(" {}", Purple.paint(&format!("[{}]", script.name())));
                                 }
                             }
 
@@ -160,8 +175,9 @@ fn print_buf(buf: &[u8]) {
 
 
 struct Options {
-    bytes:       bool,
-    show_names:  bool,
+    bytes:         bool,
+    show_names:    bool,
+    show_scripts:  bool,
 }
 
 impl Options {
@@ -169,6 +185,7 @@ impl Options {
         let mut opts = getopts::Options::new();
         opts.optflag("b", "bytes",     "show count in number of bytes, not characters");
         opts.optflag("n", "names",     "show unicode name of each character");
+        opts.optflag("s", "scripts",   "show script for each chararcter");
         opts.optflag("",  "version",   "display version of program");
         opts.optflag("?", "help",      "show list of command-line options");
 
@@ -185,8 +202,9 @@ impl Options {
         }
 
         Ok(Options {
-            bytes:       matches.opt_present("bytes"),
-            show_names:  matches.opt_present("names"),
+            bytes:         matches.opt_present("bytes"),
+            show_names:    matches.opt_present("names"),
+            show_scripts:  matches.opt_present("scripts"),
         })
     }
 }
