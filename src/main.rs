@@ -10,10 +10,10 @@ extern crate unicode_names;
 extern crate unicode_normalization;
 extern crate unicode_width;
 
+use std::fs::File;
 use std::io;
 use std::io::Read;
 use std::env;
-use std::fmt;
 use std::process;
 
 mod iter;
@@ -22,18 +22,34 @@ use iter::{Chars, ReadBytes, ReadChar};
 mod char;
 use char::{CharType, CharExt};
 
+mod options;
+use options::{Options, Flags};
+
 mod scripts;
 
 
 fn main() {
-    let args: Vec<_> = env::args().collect();
+    let args: Vec<_> = env::args().skip(1).collect();
     match Options::getopts(&args[..]) {
-        Ok(options)   => {
-            let thing = io::stdin();
-            let stdin = Chars { inner: thing.lock() };
-            Charmander::new(options, stdin).run();
+        Ok(options) => {
+            if let Some(file_name) = options.input_file_name {
+                match File::open(file_name.clone()) {
+                    Ok(f)  => {
+                        Charmander::new(options.flags, Chars::new(f)).run();
+                    },
+                    Err(e) => {
+                        println!("Couldn't open `{}` for reading: {}", &*file_name, e);
+                        process::exit(1);
+                    },
+                }
+            }
+            else {
+                let thing = io::stdin();
+                let stdin = Chars { inner: thing.lock() };
+                Charmander::new(options.flags, stdin).run();
+            }
         },
-        Err(misfire)  => {
+        Err(misfire) => {
             println!("{}", misfire);
             process::exit(misfire.exit_status());
         },
@@ -42,7 +58,7 @@ fn main() {
 
 
 struct Charmander<I> {
-    options: Options,
+    flags: Flags,
     count: u64,
 
     input: Chars<I>,
@@ -50,11 +66,11 @@ struct Charmander<I> {
 
 impl<I: Read> Charmander<I> {
 
-    fn new(options: Options, iterator: Chars<I>) -> Charmander<I> {
+    fn new(flags: Flags, iterator: Chars<I>) -> Charmander<I> {
         Charmander {
-            count:    if options.bytes { 0 } else { 1 },
-            options:  options,
-            input:    iterator,
+            count:  if flags.bytes { 0 } else { 1 },
+            flags:  flags,
+            input:  iterator,
         }
     }
 
@@ -76,7 +92,7 @@ impl<I: Read> Charmander<I> {
                         ReadBytes::FirstByte(b) => {
                             print_hex(b);
 
-                            if self.options.show_scripts {
+                            if self.flags.show_scripts {
                                 if let Some(script) = c.script() {
                                     print!(" {}", Purple.paint(&format!("[{}]", script.name())));
                                 }
@@ -88,19 +104,19 @@ impl<I: Read> Charmander<I> {
                         ReadBytes::WholeBuffer(buf, width) => {
                             print_buf(&buf[..width]);
 
-                            if self.options.show_names {
+                            if self.flags.show_names {
                                 if let Some(name) = unicode_names::name(c) {
                                     print!(" {}", Blue.paint(&format!("({})", name)));
                                 }
                             }
 
-                            if self.options.show_scripts {
+                            if self.flags.show_scripts {
                                 if let Some(script) = c.script() {
                                     print!(" {}", Purple.paint(&format!("[{}]", script.name())));
                                 }
                             }
 
-                            self.count += if self.options.bytes { width as u64 }
+                            self.count += if self.flags.bytes { width as u64 }
                                                                    else { 1u64 };
                         },
                     }
@@ -121,7 +137,7 @@ impl<I: Read> Charmander<I> {
 
                         ReadBytes::WholeBuffer(buf, width) => {
                             print_buf(&buf[..width]);
-                            self.count += if self.options.bytes { width as u64 }
+                            self.count += if self.flags.bytes { width as u64 }
                                                                    else { 1u64 };
                         },
                     }
@@ -171,65 +187,5 @@ fn print_buf(buf: &[u8]) {
     for index in 1 .. buf.len() {
         print!(" ");
         print_hex(buf[index]);
-    }
-}
-
-
-struct Options {
-    bytes:         bool,
-    show_names:    bool,
-    show_scripts:  bool,
-}
-
-impl Options {
-    pub fn getopts(args: &[String]) -> Result<Options, Misfire> {
-        let mut opts = getopts::Options::new();
-        opts.optflag("b", "bytes",     "show count in number of bytes, not characters");
-        opts.optflag("n", "names",     "show unicode name of each character");
-        opts.optflag("s", "scripts",   "show script for each chararcter");
-        opts.optflag("",  "version",   "display version of program");
-        opts.optflag("?", "help",      "show list of command-line options");
-
-        let matches = match opts.parse(args) {
-            Ok(m) => m,
-            Err(e) => return Err(Misfire::InvalidOptions(e)),
-        };
-
-        if matches.opt_present("help") {
-            return Err(Misfire::Help(opts.usage("Usage:\n  charm [options] < file")))
-        }
-        else if matches.opt_present("version") {
-            return Err(Misfire::Version);
-        }
-
-        Ok(Options {
-            bytes:         matches.opt_present("bytes"),
-            show_names:    matches.opt_present("names"),
-            show_scripts:  matches.opt_present("scripts"),
-        })
-    }
-}
-
-
-enum Misfire {
-    InvalidOptions(getopts::Fail),
-    Help(String),
-    Version,
-}
-
-impl Misfire {
-    pub fn exit_status(&self) -> i32 {
-        if let Misfire::Help(_) = *self { 2 }
-                                   else { 3 }
-    }
-}
-
-impl fmt::Display for Misfire {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Misfire::InvalidOptions(ref e) => write!(f, "{}", e),
-            Misfire::Help(ref text)        => write!(f, "{}", text),
-            Misfire::Version               => write!(f, "charm {}", env!("CARGO_PKG_VERSION")),
-        }
     }
 }

@@ -9,6 +9,12 @@ pub struct Chars<R> {
     pub inner: R,
 }
 
+impl<R: Read> Chars<R> {
+    pub fn new(r: R) -> Chars<R> {
+        Chars { inner: r }
+    }
+}
+
 pub enum ReadBytes {
     FirstByte(u8),
     WholeBuffer([u8; 4], usize)
