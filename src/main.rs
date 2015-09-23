@@ -167,7 +167,7 @@ fn number(c: char) -> String {
         format!(" #{}", number)
     }
     else if number >= 0x300 && number < 0x370 {
-        format!(" ' {}'", c)
+        format!(" '\u{25CC}{}'", c)
     }
     else if c.is_multicolumn() {
         format!("'{}'", c)
