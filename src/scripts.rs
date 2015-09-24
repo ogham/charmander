@@ -1,7 +1,14 @@
+//! Script and writing system identification.
+//!
+//! This gets used with the `--script` option to display the script, or
+//! writing system, of each character next to it.
+
 use std::cmp::Ordering;
 
 use self::Script::*;
 
+
+/// Enum containing every known script.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Script {
     Ahom, AnatolianHieroglyphs, Arabic, Armenian, Avestan, Balinese, Bamum,
@@ -27,22 +34,9 @@ pub enum Script {
     UnifiedCanadianAboriginalSyllabics, Vai, Vedic, WarangCiti, Yi,
 }
 
-fn pos<N: PartialOrd>(start: N, end: N, num: N) -> Ordering {
-    if num >= start && num <= end {
-        Ordering::Equal
-    }
-    else if num > start {
-        Ordering::Less
-    }
-    else if num < end {
-        Ordering::Greater
-    }
-    else {
-        unreachable!()
-    }
-}
-
 impl Script {
+
+    /// Look up the script for this character in the table.
     pub fn lookup(c: char) -> Option<Script> {
         let num = c as u32;
         let index = SCRIPT_TABLE.binary_search_by(|range| pos(range.0, range.1, num));
@@ -53,6 +47,7 @@ impl Script {
         }
     }
 
+    /// Get the actual text to display next to a character.
     pub fn name(&self) -> &'static str {
         match *self {
             Ahom => "Ahom",
@@ -199,6 +194,31 @@ impl Script {
     }
 }
 
+
+/// A function to determine whether the given value is before, during, or
+/// after the given range.
+fn pos<N: PartialOrd>(start: N, end: N, num: N) -> Ordering {
+    if num >= start && num <= end {
+        Ordering::Equal
+    }
+    else if num > start {
+        Ordering::Less
+    }
+    else if num < end {
+        Ordering::Greater
+    }
+    else {
+        unreachable!()
+    }
+}
+
+
+/// A lookup table for associating certain runs of characters with the scripts
+/// they contain.
+///
+/// The first two characters mark the beginning and the end of the run, while
+/// the third is the script itself. The entire list needs to be ordered by the
+/// sequence, so binary searching it works.
 static SCRIPT_TABLE: &'static [(u32, u32, Script)] = &[
     (0x00041, 0x0005A, Latin),
     (0x00061, 0x0007A, Latin),

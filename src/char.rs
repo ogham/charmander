@@ -1,26 +1,42 @@
+//! Extension methods on `char` values.
+//!
+//! *Technically*, all of these methods don't need to be in a trait, and could
+//! instead just be individual functions. They're only methods for aesthetics.
+
 use unicode_width::UnicodeWidthChar;
 use unicode_normalization::char::canonical_combining_class;
 
 use scripts::Script;
 
 
+/// Extension methods on `char` values.
 pub trait CharExt {
-    fn char_type(&self) -> CharType;
+
+    /// How this character should be displayed.
+    /// See the `DisplayType` enum for more details.
+    fn char_type(&self) -> DisplayType;
+
+    /// This character's script or writing system, if it has been associated
+    /// with one.
     fn script(&self) -> Option<Script>;
+
+    /// Whether this character is 2 columns wide, rather than 1.
     fn is_multicolumn(&self) -> bool;
+
+    /// Whether this character is a Unicode combining character.
     fn is_combining(&self) -> bool;
 }
 
 impl CharExt for char {
-    fn char_type(&self) -> CharType {
+    fn char_type(&self) -> DisplayType {
         if self.is_control() {
-            CharType::Control
+            DisplayType::Control
         }
         else if self.is_combining() {
-            CharType::Combining
+            DisplayType::Combining
         }
         else {
-            CharType::Normal
+            DisplayType::Normal
         }
     }
 
@@ -37,9 +53,19 @@ impl CharExt for char {
     }
 }
 
+
+/// How to display a character.
 #[derive(PartialEq, Debug)]
-pub enum CharType {
+pub enum DisplayType {
+
+    /// Nothing special about this character.
     Normal,
+
+    /// This character is a combining character, and should be displayed with
+    /// another symbol as its background.
     Combining,
+
+    /// This character is a control character, and cannot be directly printed,
+    /// so display its codepoint number instead.
     Control,
 }

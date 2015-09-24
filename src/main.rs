@@ -1,4 +1,12 @@
+//! charmander, a character-viewing program
+
 #![feature(str_char, unicode)]
+
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(trivial_casts, trivial_numeric_casts)]
+#![warn(unused_qualifications)]
+#![warn(unused_results)]
 
 extern crate getopts;
 extern crate ansi_term;
@@ -11,8 +19,7 @@ extern crate unicode_normalization;
 extern crate unicode_width;
 
 use std::fs::File;
-use std::io;
-use std::io::Read;
+use std::io::{stdin, Read};
 use std::env;
 use std::process;
 
@@ -20,7 +27,7 @@ mod iter;
 use iter::{Chars, ReadBytes, ReadChar};
 
 mod char;
-use char::{CharType, CharExt};
+use char::{DisplayType, CharExt};
 
 mod options;
 use options::{Options, Flags};
@@ -44,9 +51,9 @@ fn main() {
                 }
             }
             else {
-                let thing = io::stdin();
-                let stdin = Chars { inner: thing.lock() };
-                Charmander::new(options.flags, stdin).run();
+                let stdin = stdin();
+                let iterator = Chars::new(stdin.lock());
+                Charmander::new(options.flags, iterator).run();
             }
         },
         Err(misfire) => {
@@ -56,11 +63,16 @@ fn main() {
     }
 }
 
-
+/// The main program body. It's able to run on anything that fits in the `Chars` iterator.
 struct Charmander<I> {
+
+    /// Flags that affect the output.
     flags: Flags,
+
+    /// The count to display next to each character.
     count: u64,
 
+    /// The iterator to loop through.
     input: Chars<I>,
 }
 
@@ -68,6 +80,8 @@ impl<I: Read> Charmander<I> {
 
     fn new(flags: Flags, iterator: Chars<I>) -> Charmander<I> {
         Charmander {
+            // Humans start counting things from 1, but the offset of each
+            // character needs to start from 0.
             count:  if flags.bytes { 0 } else { 1 },
             flags:  flags,
             input:  iterator,
@@ -78,15 +92,17 @@ impl<I: Read> Charmander<I> {
         for input in self.input {
             match input {
                 Ok(ReadChar::Ok(c, bytes)) => {
+
+                    // Display certain types of character in a colour.
+                    // (these colours are pretty much arbitrary)
                     let style = match c.char_type() {
-                        CharType::Control    => Green.normal(),
-                        CharType::Combining  => Purple.normal(),
-                        CharType::Normal     => Style::default(),
+                        DisplayType::Control    => Green.normal(),
+                        DisplayType::Combining  => Purple.normal(),
+                        DisplayType::Normal     => Style::default(),
                     };
 
                     print_count(self.count);
-                    print!("{}", style.paint(&number(c)));
-                    print!(" {} ", Fixed(244).paint("="));
+                    print!("{} {} ", style.paint(&number(c)), Fixed(244).paint("="));
 
                     match bytes {
                         ReadBytes::FirstByte(b) => {
@@ -117,7 +133,7 @@ impl<I: Read> Charmander<I> {
                             }
 
                             self.count += if self.flags.bytes { width as u64 }
-                                                                   else { 1u64 };
+                                                                 else { 1u64 };
                         },
                     }
 
@@ -163,7 +179,7 @@ fn number(c: char) -> String {
     if number <= 9 {
         format!(" #{} ", number)
     }
-    else if number as u32 <= 31 {
+    else if number <= 31 {
         format!(" #{}", number)
     }
     else if number >= 0x300 && number < 0x370 {
@@ -178,7 +194,7 @@ fn number(c: char) -> String {
 }
 
 fn print_hex(c: u8) {
-    print!("{:0>2x}", c as u8);
+    print!("{:0>2x}", c);
 }
 
 fn print_buf(buf: &[u8]) {
