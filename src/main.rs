@@ -17,6 +17,7 @@ extern crate rustc_unicode;
 extern crate unicode_names;
 extern crate unicode_normalization;
 extern crate unicode_width;
+use unicode_width::UnicodeWidthChar;
 
 use std::fs::File;
 use std::io::{stdin, Read};
@@ -114,6 +115,15 @@ impl<I: Read> Charmander<I> {
                                 }
                             }
 
+                            if self.flags.show_widths {
+                                if let Some(width) = c.width() {
+                                    print!(" {}", Cyan.paint(&format!("<{}>", width)));
+                                }
+                                else {
+                                    print!(" {}", Cyan.paint("<C>"));
+                                }
+                            }
+
                             self.count += 1;
                         },
 
@@ -129,6 +139,15 @@ impl<I: Read> Charmander<I> {
                             if self.flags.show_scripts {
                                 if let Some(script) = c.script() {
                                     print!(" {}", Purple.paint(&format!("[{}]", script.name())));
+                                }
+                            }
+
+                            if self.flags.show_widths {
+                                if let Some(width) = c.width() {
+                                    print!(" {}", Cyan.paint(&format!("<{}>", width)));
+                                }
+                                else {
+                                    print!(" {}", Cyan.paint("<C>"));
                                 }
                             }
 

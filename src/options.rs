@@ -27,6 +27,7 @@ pub struct Flags {
     pub bytes:           bool,
     pub show_names:      bool,
     pub show_scripts:    bool,
+    pub show_widths:     bool,
 }
 
 #[allow(unused_results)]
@@ -37,7 +38,8 @@ impl Options {
         let mut opts = getopts::Options::new();
         opts.optflag("b", "bytes",     "show count in number of bytes, not characters");
         opts.optflag("n", "names",     "show unicode name of each character");
-        opts.optflag("s", "scripts",   "show script for each chararcter");
+        opts.optflag("s", "scripts",   "show script for each character");
+        opts.optflag("w", "widths",    "show width for each character");
         opts.optflag("",  "version",   "display version of program");
         opts.optflag("?", "help",      "show list of command-line options");
 
@@ -68,6 +70,7 @@ impl Options {
                 bytes:           matches.opt_present("bytes"),
                 show_names:      matches.opt_present("names"),
                 show_scripts:    matches.opt_present("scripts"),
+                show_widths:     matches.opt_present("widths"),
             },
             input_file_name: input_file_name,
         })
