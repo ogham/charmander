@@ -8,10 +8,14 @@
 #![warn(unused_qualifications)]
 #![warn(unused_results)]
 
-extern crate getopts;
+#[macro_use]
+extern crate clap;
+use clap::App;
+
 extern crate ansi_term;
 use ansi_term::Colour::*;
 use ansi_term::Style;
+use ansi_term::ANSIString;
 
 extern crate rustc_unicode;
 extern crate unicode_names;
@@ -28,39 +32,44 @@ mod iter;
 use iter::{Chars, ReadBytes, ReadChar};
 
 mod char;
-use char::{DisplayType, CharExt};
-
-mod options;
-use options::{Options, Flags};
+use char::{CharExt};
 
 mod scripts;
 
+#[derive(PartialEq, Debug)]
+pub struct Flags {
+    pub bytes:           bool,
+    pub show_names:      bool,
+    pub show_scripts:    bool,
+    pub show_widths:     bool,
+}
 
 fn main() {
-    let args: Vec<_> = env::args().skip(1).collect();
-    match Options::getopts(&args[..]) {
-        Ok(options) => {
-            if let Some(file_name) = options.input_file_name {
-                match File::open(file_name.clone()) {
-                    Ok(f)  => {
-                        Charmander::new(options.flags, Chars::new(f)).run();
-                    },
-                    Err(e) => {
-                        println!("Couldn't open `{}` for reading: {}", &*file_name, e);
-                        process::exit(1);
-                    },
-                }
-            }
-            else {
-                let stdin = stdin();
-                let iterator = Chars::new(stdin.lock());
-                Charmander::new(options.flags, iterator).run();
-            }
-        },
-        Err(misfire) => {
-            println!("{}", misfire);
-            process::exit(misfire.exit_status());
-        },
+    let yaml = load_yaml!("args.yml");
+    let matches = App::from_yaml(yaml).get_matches();
+
+    let flags = Flags {
+        bytes:           matches.is_present("bytes"),
+        show_names:      matches.is_present("names"),
+        show_scripts:    matches.is_present("scripts"),
+        show_widths:     matches.is_present("widths"),
+    };
+
+    if let Some(file_name) = matches.value_of("input_file") {
+        match File::open(file_name.clone()) {
+            Ok(f)  => {
+                Charmander::new(flags, Chars::new(f)).run();
+            },
+            Err(e) => {
+                println!("Couldn't open `{}` for reading: {}", &*file_name, e);
+                process::exit(1);
+            },
+        }
+    }
+    else {
+        let stdin = stdin();
+        let iterator = Chars::new(stdin.lock());
+        Charmander::new(flags, iterator).run();
     }
 }
 

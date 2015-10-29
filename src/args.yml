@@ -1,0 +1,25 @@
+name: charmander
+about: Displays UTF-8 information about a character file or stream
+
+args:
+    - bytes:
+        help: show count in number of bytes, not number of characters
+        short: b
+        long: bytes
+    - names:
+        help: show Unicode name of each character
+        short: n
+        long: names
+    - scripts:
+        help: show writing script for each character
+        short: s
+        long: scripts
+    - widths:
+        help: show Unicode width for each character
+        short: w
+        long: widths
+    - input_file:
+        help: input file to read, if any
+        index: 1
+
+

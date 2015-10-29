@@ -8,10 +8,13 @@ name = "charm"
 
 [dependencies]
 ansi_term = "*"
-getopts = "*"
 unicode_names = "*"
 unicode-width = "*"
 unicode-normalization = "*"
+
+[dependencies.clap]
+version = "1.4.6"
+features = [ "yaml" ]
 
 [profile.release]
 opt-level = 3
