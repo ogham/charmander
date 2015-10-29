@@ -94,16 +94,8 @@ impl<I: Read> Charmander<I> {
             match input {
                 Ok(ReadChar::Ok(c, bytes)) => {
 
-                    // Display certain types of character in a colour.
-                    // (these colours are pretty much arbitrary)
-                    let style = match c.char_type() {
-                        DisplayType::Control    => Green.normal(),
-                        DisplayType::Combining  => Purple.normal(),
-                        DisplayType::Normal     => Style::default(),
-                    };
-
                     print_count(self.count);
-                    print!("{} {} ", style.paint(&number(c)), Fixed(244).paint("="));
+                    print!("{}\t{} ", number(c), Fixed(244).paint("="));
 
                     match bytes {
                         ReadBytes::FirstByte(b) => {
@@ -195,20 +187,20 @@ fn print_count(count: u64) {
 fn number(c: char) -> String {
     let number = c as u32;
 
-    if number <= 9 {
-        format!(" #{} ", number)
+    if number <= 31 {
+        let s = format!("#{}", number);
+        Green.paint(&s).to_string()
     }
-    else if number <= 31 {
-        format!(" #{}", number)
+    else if c.is_combining() {
+        let s = format!("◌{}", c);
+        Red.paint(&s).to_string()
     }
-    else if number >= 0x300 && number < 0x370 {
-        format!(" '\u{25CC}{}'", c)
-    }
-    else if c.is_multicolumn() {
-        format!("'{}'", c)
+    else if let Some(0) = c.width() {
+        let s = format!(" {}", c);
+        Cyan.paint(&s).to_string()
     }
     else {
-        format!(" '{}'", c)
+        c.to_string()
     }
 }
 

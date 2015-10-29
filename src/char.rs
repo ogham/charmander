@@ -3,7 +3,6 @@
 //! *Technically*, all of these methods don't need to be in a trait, and could
 //! instead just be individual functions. They're only methods for aesthetics.
 
-use unicode_width::UnicodeWidthChar;
 use unicode_normalization::char::canonical_combining_class;
 
 use scripts::Script;
@@ -19,9 +18,6 @@ pub trait CharExt {
     /// This character's script or writing system, if it has been associated
     /// with one.
     fn script(&self) -> Option<Script>;
-
-    /// Whether this character is 2 columns wide, rather than 1.
-    fn is_multicolumn(&self) -> bool;
 
     /// Whether this character is a Unicode combining character.
     fn is_combining(&self) -> bool;
@@ -46,10 +42,6 @@ impl CharExt for char {
 
     fn script(&self) -> Option<Script> {
         Script::lookup(*self)
-    }
-
-    fn is_multicolumn(&self) -> bool {
-        UnicodeWidthChar::width(*self) == Some(2)
     }
 }
 
