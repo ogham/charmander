@@ -1,4 +1,4 @@
-# charmander
+# charmander [![Build status](https://travis-ci.org/ogham/charmander.svg)](https://travis-ci.org/ogham/charmander)
 
 charmander is a program that takes a stream of UTF-8-formatted data on standard input, and displays information about the characters.
 
