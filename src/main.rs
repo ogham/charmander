@@ -14,8 +14,6 @@ use clap::App;
 
 extern crate ansi_term;
 use ansi_term::Colour::*;
-use ansi_term::Style;
-use ansi_term::ANSIString;
 
 extern crate rustc_unicode;
 extern crate unicode_names;
@@ -25,7 +23,6 @@ use unicode_width::UnicodeWidthChar;
 
 use std::fs::File;
 use std::io::{stdin, Read};
-use std::env;
 use std::process;
 
 mod iter;
@@ -36,7 +33,7 @@ use char::{CharExt};
 
 mod scripts;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Flags {
     pub bytes:           bool,
     pub show_names:      bool,
