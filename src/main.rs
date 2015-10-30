@@ -106,52 +106,35 @@ impl<I: Read> Charmander<I> {
                     match bytes {
                         ReadBytes::FirstByte(b) => {
                             print_hex(b);
-
-                            if self.flags.show_scripts {
-                                if let Some(script) = c.script() {
-                                    print!(" {}", Purple.paint(&format!("[{}]", script.name())));
-                                }
-                            }
-
-                            if self.flags.show_widths {
-                                if let Some(width) = c.width() {
-                                    print!(" {}", Cyan.paint(&format!("<{}>", width)));
-                                }
-                                else {
-                                    print!(" {}", Cyan.paint("<C>"));
-                                }
-                            }
-
                             self.count += 1;
                         },
 
                         ReadBytes::WholeBuffer(buf, width) => {
                             print_buf(&buf[..width]);
-
-                            if self.flags.show_names {
-                                if let Some(name) = unicode_names::name(c) {
-                                    print!(" {}", Blue.paint(&format!("({})", name)));
-                                }
-                            }
-
-                            if self.flags.show_scripts {
-                                if let Some(script) = c.script() {
-                                    print!(" {}", Purple.paint(&format!("[{}]", script.name())));
-                                }
-                            }
-
-                            if self.flags.show_widths {
-                                if let Some(width) = c.width() {
-                                    print!(" {}", Cyan.paint(&format!("<{}>", width)));
-                                }
-                                else {
-                                    print!(" {}", Cyan.paint("<C>"));
-                                }
-                            }
-
                             self.count += if self.flags.bytes { width as u64 }
                                                                  else { 1u64 };
                         },
+                    }
+
+                    if self.flags.show_names {
+                        if let Some(name) = unicode_names::name(c) {
+                            print!(" {}", Blue.paint(&format!("({})", name)));
+                        }
+                    }
+
+                    if self.flags.show_scripts {
+                        if let Some(script) = c.script() {
+                            print!(" {}", Purple.paint(&format!("[{}]", script.name())));
+                        }
+                    }
+
+                    if self.flags.show_widths {
+                        if let Some(width) = c.width() {
+                            print!(" {}", Cyan.paint(&format!("<{}>", width)));
+                        }
+                        else {
+                            print!(" {}", Cyan.paint("<C>"));
+                        }
                     }
 
                     print!("\n");
