@@ -142,8 +142,7 @@ impl<I: Read> Charmander<I> {
 
                 Ok(ReadChar::Invalid(bytes)) => {
                     print_count(self.count);
-                    print!(" {}", Red.bold().paint("!!!"));
-                    print!(" {} ", Red.paint("="));
+                    print!("{}\t{} ", Red.bold().paint("!!!"), Fixed(244).paint("="));
 
                     match bytes {
                         ReadBytes::FirstByte(b) => {
