@@ -62,7 +62,7 @@ fn main() {
     if let Some(file_name) = matches.value_of("input_file") {
         match File::open(file_name.clone()) {
             Ok(f) => {
-                app.run(Chars::new(f));
+                app.run(f);
             },
             Err(e) => {
                 println!("Couldn't open `{}` for reading: {}", &*file_name, e);
@@ -72,8 +72,7 @@ fn main() {
     }
     else {
         let stdin = stdin();
-        let iterator = Chars::new(stdin.lock());
-        app.run(iterator);
+        app.run(stdin.lock());
     }
 }
 
@@ -89,8 +88,8 @@ struct Charmander {
 }
 
 impl Charmander {
-    fn run<I: Read>(mut self, input: Chars<I>) {
-        for read_char in input {
+    fn run<I: Read>(mut self, char_stream: I) {
+        for read_char in Chars::new(char_stream) {
             match read_char {
                 Ok(ReadChar::Ok(c, bytes)) => {
 
