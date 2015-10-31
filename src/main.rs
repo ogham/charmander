@@ -21,9 +21,9 @@ extern crate unicode_normalization;
 extern crate unicode_width;
 use unicode_width::UnicodeWidthChar;
 
+use std::error::Error;
 use std::fs::File;
 use std::io::{stdin, Read};
-use std::process;
 
 mod iter;
 use iter::{Chars, ReadBytes, ReadChar};
@@ -32,6 +32,7 @@ mod char;
 use char::{CharExt};
 
 mod scripts;
+
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Flags {
@@ -61,13 +62,8 @@ fn main() {
 
     if let Some(file_name) = matches.value_of("input_file") {
         match File::open(file_name.clone()) {
-            Ok(f) => {
-                app.run(f);
-            },
-            Err(e) => {
-                println!("Couldn't open `{}` for reading: {}", &*file_name, e);
-                process::exit(1);
-            },
+            Ok(f)  => app.run(f),
+            Err(e) => error_and_exit(file_name, e),
         }
     }
     else {
@@ -76,6 +72,24 @@ fn main() {
     }
 }
 
+/// Display an error that has something to do with the given filename,
+/// then exit the program immediately with failure.
+fn error_and_exit<E: Error>(file_name: &str, error: E) {
+    use std::process::exit;
+
+    println!("{}: {}: {}", program_name(), file_name, error);
+    exit(1);
+}
+
+/// Returns the string representing the path that this program was
+/// invocated by. Usually this will be 'charm' -- it's the first
+/// 'argument' in the arguments list. If for some reason it can't be
+/// found, 'charm' will be used instead, but honestly if the arguments
+/// list is empty then something has gone badly wrong somewhere.
+fn program_name() -> String {
+    use std::env::args;
+    args().next().unwrap_or_else(|| "charm".to_owned())
+}
 
 
 struct Charmander {
