@@ -52,10 +52,17 @@ fn main() {
         show_widths:     matches.is_present("widths"),
     };
 
+    let app = Charmander {
+        // Humans start counting things from 1, but the offset of each
+        // character needs to start from 0.
+        count:  if flags.bytes { 0 } else { 1 },
+        flags:  flags,
+    };
+
     if let Some(file_name) = matches.value_of("input_file") {
         match File::open(file_name.clone()) {
-            Ok(f)  => {
-                Charmander::new(flags, Chars::new(f)).run();
+            Ok(f) => {
+                app.run(Chars::new(f));
             },
             Err(e) => {
                 println!("Couldn't open `{}` for reading: {}", &*file_name, e);
@@ -66,51 +73,38 @@ fn main() {
     else {
         let stdin = stdin();
         let iterator = Chars::new(stdin.lock());
-        Charmander::new(flags, iterator).run();
+        app.run(iterator);
     }
 }
 
-/// The main program body. It's able to run on anything that fits in the `Chars` iterator.
-struct Charmander<I> {
+
+
+struct Charmander {
 
     /// Flags that affect the output.
     flags: Flags,
 
     /// The count to display next to each character.
     count: u64,
-
-    /// The iterator to loop through.
-    input: Chars<I>,
 }
 
-impl<I: Read> Charmander<I> {
-
-    fn new(flags: Flags, iterator: Chars<I>) -> Charmander<I> {
-        Charmander {
-            // Humans start counting things from 1, but the offset of each
-            // character needs to start from 0.
-            count:  if flags.bytes { 0 } else { 1 },
-            flags:  flags,
-            input:  iterator,
-        }
-    }
-
-    fn run(mut self) {
-        for input in self.input {
-            match input {
+impl Charmander {
+    fn run<I: Read>(mut self, input: Chars<I>) {
+        for read_char in input {
+            match read_char {
                 Ok(ReadChar::Ok(c, bytes)) => {
 
-                    print_count(self.count);
-                    print!("{}\t{} ", number(c), Fixed(244).paint("="));
+                    self.print_count();
+                    print!("{}\t{} ", self.number(c), Fixed(244).paint("="));
 
                     match bytes {
                         ReadBytes::FirstByte(b) => {
-                            print_hex(b);
+                            self.print_hex(b);
                             self.count += 1;
                         },
 
                         ReadBytes::WholeBuffer(buf, width) => {
-                            print_buf(&buf[..width]);
+                            self.print_buf(&buf[..width]);
                             self.count += if self.flags.bytes { width as u64 }
                                                                  else { 1u64 };
                         },
@@ -141,19 +135,19 @@ impl<I: Read> Charmander<I> {
                 },
 
                 Ok(ReadChar::Invalid(bytes)) => {
-                    print_count(self.count);
+                    self.print_count();
                     print!("{}\t{} ", Red.bold().paint("!!!"), Fixed(244).paint("="));
 
                     match bytes {
                         ReadBytes::FirstByte(b) => {
-                            print_hex(b);
+                            self.print_hex(b);
                             self.count += 1;
                         },
 
                         ReadBytes::WholeBuffer(buf, width) => {
-                            print_buf(&buf[..width]);
+                            self.print_buf(&buf[..width]);
                             self.count += if self.flags.bytes { width as u64 }
-                                                                   else { 1u64 };
+                                                                 else { 1u64 };
                         },
                     }
 
@@ -165,42 +159,43 @@ impl<I: Read> Charmander<I> {
                 },
             }
         }
+}
+
+    fn print_count(&self) {
+        print!("{}", Fixed(244).paint(&format!("{:>5}: ", self.count)));
+    }
+
+    fn number(&self, c: char) -> String {
+        let number = c as u32;
+
+        if number <= 31 {
+            let s = format!("#{}", number);
+            Green.paint(&s).to_string()
+        }
+        else if c.is_combining() {
+            let s = format!("◌{}", c);
+            Red.paint(&s).to_string()
+        }
+        else if let Some(0) = c.width() {
+            let s = format!(" {}", c);
+            Cyan.paint(&s).to_string()
+        }
+        else {
+            c.to_string()
+        }
+    }
+
+    fn print_hex(&self, c: u8) {
+        print!("{:0>2x}", c);
+    }
+
+    fn print_buf(&self, buf: &[u8]) {
+        self.print_hex(buf[0]);
+
+        for index in 1 .. buf.len() {
+            print!(" ");
+            self.print_hex(buf[index]);
+        }
     }
 }
 
-fn print_count(count: u64) {
-    print!("{}", Fixed(244).paint(&format!("{:>5}: ", count)));
-}
-
-fn number(c: char) -> String {
-    let number = c as u32;
-
-    if number <= 31 {
-        let s = format!("#{}", number);
-        Green.paint(&s).to_string()
-    }
-    else if c.is_combining() {
-        let s = format!("◌{}", c);
-        Red.paint(&s).to_string()
-    }
-    else if let Some(0) = c.width() {
-        let s = format!(" {}", c);
-        Cyan.paint(&s).to_string()
-    }
-    else {
-        c.to_string()
-    }
-}
-
-fn print_hex(c: u8) {
-    print!("{:0>2x}", c);
-}
-
-fn print_buf(buf: &[u8]) {
-    print_hex(buf[0]);
-
-    for index in 1 .. buf.len() {
-        print!(" ");
-        print_hex(buf[index]);
-    }
-}
